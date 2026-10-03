@@ -1,0 +1,172 @@
+import { AIDetectionResult } from '../types';
+
+export interface SampleVideoPreset {
+  id: string;
+  name: string;
+  badge: string;
+  description: string;
+  videoUrl: string;
+  previewThumbnail: string;
+  detectedSample: AIDetectionResult;
+}
+
+export const SAMPLE_PRESETS: SampleVideoPreset[] = [
+  {
+    id: 'preset_hollywood_legends',
+    name: 'Top 4 Huyền Thoại Hành Động Hollywood',
+    badge: 'Phổ biến nhất',
+    description: 'Video AI giới thiệu 4 siêu sao: Leonardo DiCaprio, Tom Cruise, Keanu Reeves, Brad Pitt.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4',
+    previewThumbnail: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80',
+    detectedSample: {
+      title: 'Tuyển tập 4 Huyền Thoại Điện Ảnh Hành Động Hollywood',
+      summary: 'Video AI giới thiệu các gương mặt biểu tượng của dòng phim hành động và kịch tính Hollywood.',
+      genre: 'Hành động / Hollywood',
+      suggestedBgm: 'epic',
+      actors: [
+        {
+          id: 'actor_leo',
+          name: 'Leonardo DiCaprio',
+          characterName: 'Cobb / Jack Dawson',
+          famousMovie: 'Inception, Titanic, The Revenant',
+          bioSnippet: 'Biểu tượng diễn xuất nội tâm với những vai diễn đoạt giải Oscar đỉnh cao.',
+          searchKeywords: ['Leonardo DiCaprio Inception scene', 'Leonardo DiCaprio Oscar speech'],
+          visualStyle: 'Dramatic Cinema',
+          tagColor: '#3b82f6',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_tom',
+          name: 'Tom Cruise',
+          characterName: 'Ethan Hunt / Pete Maverick',
+          famousMovie: 'Mission: Impossible, Top Gun: Maverick',
+          bioSnippet: 'Ngôi sao không tuổi với những pha hành động mạo hiểm nghẹt thở thực tế.',
+          searchKeywords: ['Tom Cruise running stunt', 'Tom Cruise Top Gun Maverick flight'],
+          visualStyle: 'Action Hero',
+          tagColor: '#ef4444',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_keanu',
+          name: 'Keanu Reeves',
+          characterName: 'John Wick / Neo',
+          famousMovie: 'The Matrix, John Wick Series',
+          bioSnippet: 'Sát thủ quý ông trong bộ vest đen với phong cách Gun-Fu độc nhất vô nhị.',
+          searchKeywords: ['Keanu Reeves John Wick action scene', 'Keanu Reeves Matrix bullet dodge'],
+          visualStyle: 'Action Thriller',
+          tagColor: '#8b5cf6',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_brad',
+          name: 'Brad Pitt',
+          characterName: 'Tyler Durden / Cliff Booth',
+          famousMovie: 'Fight Club, Once Upon a Time in Hollywood',
+          bioSnippet: 'Thần thái lãng tử, lôi cuốn và đầy năng lượng tự nhiên của điện ảnh đương đại.',
+          searchKeywords: ['Brad Pitt Fight Club scene', 'Brad Pitt Once Upon a Time scene'],
+          visualStyle: 'Charismatic Lead',
+          tagColor: '#f59e0b',
+          clipDuration: 5,
+        },
+      ],
+    },
+  },
+  {
+    id: 'preset_heroines',
+    name: 'Dàn Nữ Minh Tinh Siêu Anh Hùng',
+    badge: 'Nữ quyền',
+    description: 'Video AI giới thiệu các nữ diễn viên hàng đầu: Scarlett Johansson, Margot Robbie, Zendaya.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    previewThumbnail: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+    detectedSample: {
+      title: 'Dàn Nữ Minh Tinh Siêu Anh Hùng Đỉnh Cao',
+      summary: 'Trích đoạn AI tôn vinh các nữ diễn viên tài sắc vẹn toàn trong các siêu phẩm hành động.',
+      genre: 'Siêu anh hùng / Nữ quyền',
+      suggestedBgm: 'action',
+      actors: [
+        {
+          id: 'actor_scarlett',
+          name: 'Scarlett Johansson',
+          characterName: 'Natasha Romanoff / Black Widow',
+          famousMovie: 'The Avengers, Black Widow, Lucy',
+          bioSnippet: 'Điệp viên quả cảm và biểu tượng nữ quyền của vũ trụ điện ảnh Marvel.',
+          searchKeywords: ['Scarlett Johansson Black Widow fight scene', 'Scarlett Johansson red carpet'],
+          visualStyle: 'Action Heroine',
+          tagColor: '#ec4899',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_margot',
+          name: 'Margot Robbie',
+          characterName: 'Harley Quinn / Barbie',
+          famousMovie: 'Suicide Squad, Barbie, Babylon',
+          bioSnippet: 'Nữ diễn viên biến hóa đa tài từ vai diễn điên rồ đến biểu tượng văn hóa toàn cầu.',
+          searchKeywords: ['Margot Robbie Barbie trailer', 'Margot Robbie Harley Quinn action scene'],
+          visualStyle: 'Vibrant Pop',
+          tagColor: '#f43f5e',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_zendaya',
+          name: 'Zendaya',
+          characterName: 'Chani / MJ',
+          famousMovie: 'Dune: Part Two, Euphoria, Spider-Man',
+          bioSnippet: 'Gương mặt thời trang thế hệ mới với ánh mắt sắc sảo và diễn xuất nội lực.',
+          searchKeywords: ['Zendaya Dune scene desert', 'Zendaya red carpet fashion'],
+          visualStyle: 'Modern Icon',
+          tagColor: '#06b6d4',
+          clipDuration: 5,
+        },
+      ],
+    },
+  },
+  {
+    id: 'preset_kdrama',
+    name: 'Dàn Nam Thần K-Drama & Squid Game',
+    badge: 'Hàn Quốc',
+    description: 'Video AI giới thiệu các nam diễn viên: Song Joong-ki, Lee Jung-jae, Hyun Bin.',
+    videoUrl: 'https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.360p.vp9.webm',
+    previewThumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+    detectedSample: {
+      title: 'Tuyển Tập Nam Thần Điện Ảnh Châu Á',
+      summary: 'Danh sách diễn viên hàng đầu trong làn sóng Hallyu và điện ảnh Hàn Quốc.',
+      genre: 'K-Drama / Điện ảnh Á Châu',
+      suggestedBgm: 'emotional',
+      actors: [
+        {
+          id: 'actor_song',
+          name: 'Song Joong-ki',
+          characterName: 'Vincenzo Cassano / Yoo Si-jin',
+          famousMovie: 'Vincenzo, Hậu Duệ Mặt Trời',
+          bioSnippet: 'Luật sư Mafia lịch lãm với nụ cười lạnh lùng và những pha giải quyết kịch tính.',
+          searchKeywords: ['Song Joong Ki Vincenzo action scene', 'Song Joong Ki suit handsome'],
+          visualStyle: 'Charismatic Noir',
+          tagColor: '#10b981',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_lee',
+          name: 'Lee Jung-jae',
+          characterName: 'Seong Gi-hun (Player 456)',
+          famousMovie: 'Squid Game, Hunt, Deliver Us from Evil',
+          bioSnippet: 'Nam diễn viên đoạt giải Emmy đầu tiên của châu Á với diễn xuất tâm lý bậc thầy.',
+          searchKeywords: ['Lee Jung Jae Squid Game green tracksuit', 'Lee Jung Jae Emmy speech'],
+          visualStyle: 'Dramatic Cinema',
+          tagColor: '#14b8a6',
+          clipDuration: 5,
+        },
+        {
+          id: 'actor_hyun',
+          name: 'Hyun Bin',
+          characterName: 'Ri Jeong-hyeok',
+          famousMovie: 'Crash Landing on You, Confidential Assignment',
+          bioSnippet: 'Hình mẫu đại úy chính trực, phong độ với những pha hành động cận chiến đĩnh đạc.',
+          searchKeywords: ['Hyun Bin Crash Landing on You scene', 'Hyun Bin action movie'],
+          visualStyle: 'Heroic Romance',
+          tagColor: '#6366f1',
+          clipDuration: 5,
+        },
+      ],
+    },
+  },
+];
