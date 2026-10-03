@@ -7,6 +7,7 @@ export interface ActorItem {
   searchKeywords: string[];
   visualStyle: string;
   tagColor: string;
+  selected?: boolean; // Controls whether this actor is included in stitching
   originalVideoStart?: number; // Start timestamp in user's AI video (e.g. 0.0s)
   originalVideoEnd?: number; // End timestamp in user's AI video (e.g. 8.0s)
   clipDuration: number; // default 5 seconds for web clip

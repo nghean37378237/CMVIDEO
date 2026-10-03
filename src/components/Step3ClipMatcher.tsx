@@ -19,6 +19,7 @@ import {
   Check,
   Wand2,
   Tv,
+  Trash2,
 } from 'lucide-react';
 import { ActorItem, VideoClip } from '../types';
 import { CinematicMotionPlayer } from './CinematicMotionPlayer';
@@ -183,10 +184,40 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
     onActorsChange(newActors);
   };
 
-  const readyCount = actors.filter((a) => a.selectedClip).length;
+  const activeActors = actors.filter((a) => a.selected !== false);
+
+  const handleToggleActorSelect = (actorId: string) => {
+    const updated = actors.map((a) =>
+      a.id === actorId ? { ...a, selected: a.selected === false ? true : false } : a
+    );
+    onActorsChange(updated);
+  };
+
+  const handleDeleteActor = (actorId: string) => {
+    if (actors.length <= 1) {
+      alert('Cần giữ lại ít nhất 1 diễn viên để ghép video.');
+      return;
+    }
+    onActorsChange(actors.filter((a) => a.id !== actorId));
+  };
+
+  const handleSelectAll = (select: boolean) => {
+    onActorsChange(actors.map((a) => ({ ...a, selected: select })));
+  };
+
+  const handleDeleteUnselected = () => {
+    const kept = actors.filter((a) => a.selected !== false);
+    if (kept.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 diễn viên trước khi xóa.');
+      return;
+    }
+    onActorsChange(kept);
+  };
+
+  const readyCount = activeActors.filter((a) => a.selectedClip).length;
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-rose-950/40 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -196,10 +227,10 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
               Bước 3: Thêm link / Tải video ghép cho từng diễn viên
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-              Thêm video ghép &amp; Cắt 5 giây (Theo thứ tự bạn muốn)
+              Thêm video ghép &amp; Cắt 5 giây ({activeActors.length} / {actors.length} diễn viên)
             </h2>
             <p className="mt-1 text-slate-300 text-xs sm:text-sm">
-              Bạn có thể <strong>dán link video</strong> (YouTube, TikTok, Shorts, Facebook) hoặc <strong>tải file từ máy tính</strong> cho từng diễn viên. Bạn có thể đảo ngẫu nhiên thứ tự bất kỳ lúc nào!
+              Bạn có thể <strong>bỏ chọn hoặc xóa các diễn viên thừa</strong>, dán link video, cắt 5 giây hoặc đảo thứ tự bất kỳ lúc nào!
             </p>
           </div>
 
@@ -210,7 +241,7 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
               title="Tự động tìm và cắt 5s đẹp nhất cho toàn bộ diễn viên"
             >
               <Wand2 className="w-3.5 h-3.5 text-amber-300" />
-              ⚡ Tự động cắt 5s đẹp nhất (Tất cả)
+              ⚡ Tự động cắt 5s đẹp nhất
             </button>
 
             <button
@@ -226,16 +257,56 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
               <span className="text-[10px] text-slate-400 block">Đã có video ghép</span>
               <span className="text-xs font-bold text-emerald-400 flex items-center justify-end gap-1">
                 <CheckCircle2 className="w-3 h-3" />
-                {readyCount} / {actors.length}
+                {readyCount} / {activeActors.length}
               </span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Toolbar to Eliminate Excess Actors */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-300 font-bold">
+            Đang chọn <span className="text-emerald-400 font-extrabold">{activeActors.length}</span> / {actors.length} diễn viên
+          </span>
+          {actors.length > activeActors.length && (
+            <span className="text-[11px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              Đã bỏ qua {actors.length - activeActors.length} diễn viên thừa
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => handleSelectAll(true)}
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 transition"
+          >
+            ✓ Chọn tất cả
+          </button>
+          <button
+            onClick={() => handleSelectAll(false)}
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 transition"
+          >
+            Bỏ chọn hết
+          </button>
+          {actors.some((a) => a.selected === false) && (
+            <button
+              onClick={handleDeleteUnselected}
+              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 transition flex items-center gap-1"
+              title="Xóa hẳn các diễn viên đang bỏ chọn khỏi dự án"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              Xóa các diễn viên thừa
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Grid of Actors with Custom Video Input */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {actors.map((actor, idx) => {
+          const isSelected = actor.selected !== false;
           const clip = actor.selectedClip;
           const isFullCover = fitModeMap[actor.id] !== 'blur-fill'; // Default Full Screen 9:16
           const trimStart = actor.trimStartTime || 0;
@@ -246,11 +317,24 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
           return (
             <div
               key={actor.id}
-              className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden shadow-xl transition flex flex-col justify-between"
+              className={`border rounded-2xl overflow-hidden shadow-xl transition flex flex-col justify-between ${
+                !isSelected
+                  ? 'bg-slate-950/40 border-slate-900 opacity-60'
+                  : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+              }`}
             >
               {/* Card Header */}
               <div className="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/60">
                 <div className="flex items-center gap-3">
+                  {/* Select Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleActorSelect(actor.id)}
+                    className="w-4 h-4 rounded accent-emerald-500 cursor-pointer"
+                    title={isSelected ? 'Bỏ chọn để không ghép diễn viên này' : 'Tích chọn để ghép diễn viên này'}
+                  />
+
                   <div className="flex flex-col items-center gap-0.5">
                     <button
                       onClick={() => handleMove(idx, 'up')}
@@ -274,7 +358,7 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
                   </div>
 
                   <div>
-                    <h3 className="text-base font-extrabold text-emerald-400 leading-tight">
+                    <h3 className={`text-base font-extrabold leading-tight ${isSelected ? 'text-emerald-400' : 'text-slate-500 line-through'}`}>
                       {actor.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -286,24 +370,35 @@ export const Step3ClipMatcher: React.FC<Step3ClipMatcherProps> = ({
                   </div>
                 </div>
 
-                {/* Mode toggle: Full Màn 9:16 vs Vừa vặn */}
-                <button
-                  onClick={() =>
-                    setFitModeMap((prev) => ({
-                      ...prev,
-                      [actor.id]: prev[actor.id] === 'blur-fill' ? 'full-cover' : 'blur-fill',
-                    }))
-                  }
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${
-                    isFullCover
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
-                  }`}
-                  title="Chuyển đổi Full Màn 9:16 tràn viền"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  {isFullCover ? 'Full Màn 9:16' : 'Vừa vặn (Nền mờ)'}
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Mode toggle: Full Màn 9:16 vs Vừa vặn */}
+                  <button
+                    onClick={() =>
+                      setFitModeMap((prev) => ({
+                        ...prev,
+                        [actor.id]: prev[actor.id] === 'blur-fill' ? 'full-cover' : 'blur-fill',
+                      }))
+                    }
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${
+                      isFullCover
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                    }`}
+                    title="Chuyển đổi Full Màn 9:16 tràn viền"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    {isFullCover ? 'Full Màn 9:16' : 'Vừa vặn'}
+                  </button>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={() => handleDeleteActor(actor.id)}
+                    className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-900 transition"
+                    title="Xóa diễn viên này khỏi danh sách"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Direct Paste Link & Upload Bar for this Actor */}

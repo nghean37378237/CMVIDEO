@@ -91,13 +91,62 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
   const customAudioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<any>(null);
 
-  const currentActor = actors[currentActorIndex] || actors[0];
+  const activeActors = actors.filter((a) => a.selected !== false);
+  const currentActor = activeActors[currentActorIndex] || activeActors[0] || actors[0];
 
-  // Calculate approximate total duration
-  const totalDuration = actors.reduce((acc, curr) => {
+  // Calculate approximate total duration for selected actors only
+  const totalDuration = activeActors.reduce((acc, curr) => {
     const aiDur = curr.originalVideoEnd ? curr.originalVideoEnd - (curr.originalVideoStart || 0) : 7;
     return acc + (originalVideoUrl ? aiDur : 0) + (curr.clipDuration || 5);
   }, 0);
+
+  // Toggle select/unselect actor for stitching
+  const handleToggleActorSelect = (actorId: string) => {
+    const updated = actors.map((a) =>
+      a.id === actorId ? { ...a, selected: a.selected === false ? true : false } : a
+    );
+    onActorsChange?.(updated);
+  };
+
+  // Permanently delete an excess actor
+  const handleDeleteActor = (actorId: string, actorName: string) => {
+    if (actors.length <= 1) {
+      alert('Cần giữ lại ít nhất 1 diễn viên để ghép video.');
+      return;
+    }
+    const updated = actors.filter((a) => a.id !== actorId);
+    onActorsChange?.(updated);
+    if (currentActorIndex >= updated.length) {
+      setCurrentActorIndex(0);
+    }
+    setHighlightToast(`Đã xóa ${actorName} khỏi danh sách`);
+    setTimeout(() => setHighlightToast(''), 3000);
+  };
+
+  // Batch selection
+  const handleSelectAll = (select: boolean) => {
+    const updated = actors.map((a) => ({ ...a, selected: select }));
+    onActorsChange?.(updated);
+    setHighlightToast(select ? 'Đã chọn toàn bộ diễn viên' : 'Đã bỏ chọn toàn bộ diễn viên');
+    setTimeout(() => setHighlightToast(''), 3000);
+  };
+
+  // Delete all unselected / excess actors
+  const handleDeleteUnselected = () => {
+    const kept = actors.filter((a) => a.selected !== false);
+    if (kept.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 diễn viên trước khi xóa các diễn viên thừa.');
+      return;
+    }
+    if (kept.length === actors.length) {
+      alert('Hiện tất cả diễn viên đều đang được chọn. Hãy bỏ chọn diễn viên bạn muốn xóa.');
+      return;
+    }
+    onActorsChange?.(kept);
+    setCurrentActorIndex(0);
+    setHighlightToast(`Đã xóa các diễn viên thừa. Giữ lại ${kept.length} diễn viên được chọn.`);
+    setTimeout(() => setHighlightToast(''), 3500);
+  };
 
   // Sequential Playback Controller (Auto-transitions between AI video and Added Clip with Cinematic Flash)
   useEffect(() => {
@@ -282,6 +331,12 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
 
   // Start real video stitching and export
   const handleStartExport = async () => {
+    const activeActorsToStitch = actors.filter((a) => a.selected !== false);
+    if (activeActorsToStitch.length === 0) {
+      alert('Chưa có diễn viên nào được chọn! Vui lòng tích chọn ít nhất 1 diễn viên để ghép video.');
+      return;
+    }
+
     setIsPlaying(false);
     clearInterval(timerRef.current);
     aiVideoRef.current?.pause();
@@ -292,7 +347,7 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
     setIsExporting(true);
     setExportProgress({
       currentActorIndex: 0,
-      totalActors: actors.length,
+      totalActors: activeActorsToStitch.length,
       actorName: 'Bắt đầu',
       percent: 0,
       stage: 'Chuẩn bị dữ liệu và khung hình canvas 9:16...',
@@ -300,7 +355,7 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
 
     try {
       const blob = await stitchActorVideos(
-        actors,
+        activeActorsToStitch,
         settings,
         (p) => {
           setExportProgress(p);
@@ -1145,14 +1200,45 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
 
           {/* DÒNG THỜI GIAN GHÉP ĐAN XEN */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-emerald-400" />
-                Dòng thời gian ghép ({actors.length} diễn viên)
+                Dòng thời gian ghép ({activeActors.length} / {actors.length} được chọn)
               </h3>
-              <span className="text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                {isFullCover ? 'Full 9:16' : '9:16 Nền mờ'}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  {isFullCover ? 'Full 9:16' : '9:16 Nền mờ'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Action Toolbar to Eliminate Unwanted/Excess Actors */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 p-2 bg-slate-950 rounded-xl border border-slate-800 text-[11px]">
+              <span className="text-slate-400 font-semibold">Thao tác nhanh:</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => handleSelectAll(true)}
+                  className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition"
+                >
+                  ✓ Chọn tất cả
+                </button>
+                <button
+                  onClick={() => handleSelectAll(false)}
+                  className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-[10px] font-bold transition"
+                >
+                  Bỏ chọn hết
+                </button>
+                {actors.some((a) => a.selected === false) && (
+                  <button
+                    onClick={handleDeleteUnselected}
+                    className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 text-[10px] font-bold transition flex items-center gap-1"
+                    title="Xóa vĩnh viễn các diễn viên đang bỏ chọn khỏi dự án"
+                  >
+                    <Trash2 className="w-3 h-3 text-rose-400" />
+                    Xóa các diễn viên thừa
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Global Auto-Optimize All 5s Clips Button */}
@@ -1161,13 +1247,15 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
               className="w-full py-2 px-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition"
             >
               <Wand2 className="w-4 h-4 text-amber-300" />
-              ⚡ Tự động cắt 5s đẹp nhất cho TẤT CẢ {actors.length} diễn viên
+              ⚡ Tự động cắt 5s đẹp nhất cho TẤT CẢ {activeActors.length} diễn viên được chọn
             </button>
 
-            {/* List of Actor Chapters */}
-            <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+            {/* List of Actor Chapters with Checkboxes and Delete Buttons */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {actors.map((actor, idx) => {
-                const isCurrentActor = currentActorIndex === idx;
+                const isSelected = actor.selected !== false;
+                const activeIndex = activeActors.findIndex((a) => a.id === actor.id);
+                const isCurrentActor = isSelected && currentActorIndex === activeIndex;
                 const isOriginalActive = isCurrentActor && currentSubPhase === 'original';
                 const isClipActive = isCurrentActor && currentSubPhase === 'clip';
 
@@ -1175,49 +1263,86 @@ export const Step4VideoStitcher: React.FC<Step4VideoStitcherProps> = ({
                   <div
                     key={actor.id}
                     className={`p-2.5 rounded-xl border transition ${
-                      isCurrentActor
+                      !isSelected
+                        ? 'opacity-40 bg-slate-950/40 border-slate-900'
+                        : isCurrentActor
                         ? 'bg-slate-950 border-rose-500/60 shadow'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                        : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                      <span className="flex items-center gap-1.5 text-white">
-                        <span className="w-4 h-4 rounded bg-slate-800 text-slate-300 flex items-center justify-center text-[9px]">
-                          #{idx + 1}
+                      <div className="flex items-center gap-2">
+                        {/* Checkbox to include/exclude */}
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleActorSelect(actor.id)}
+                          className="w-4 h-4 rounded accent-emerald-500 cursor-pointer"
+                          title={isSelected ? 'Bỏ chọn để không ghép diễn viên này' : 'Tích chọn để ghép diễn viên này'}
+                        />
+
+                        <span className="flex items-center gap-1.5 text-white">
+                          <span className="w-4 h-4 rounded bg-slate-800 text-slate-300 flex items-center justify-center text-[9px]">
+                            #{idx + 1}
+                          </span>
+                          <span className={`font-extrabold ${isSelected ? 'text-emerald-400' : 'text-slate-500 line-through'}`}>
+                            {actor.name}
+                          </span>
                         </span>
-                        <span className="text-emerald-400 font-extrabold">{actor.name}</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        {actor.characterName}
-                      </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {actor.characterName}
+                        </span>
+
+                        {/* Delete button to remove excess actor */}
+                        <button
+                          onClick={() => handleDeleteActor(actor.id, actor.name)}
+                          className="p-1 text-slate-500 hover:text-rose-400 rounded hover:bg-slate-900 transition"
+                          title="Xóa diễn viên này khỏi danh sách ghép"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Dual Segment Buttons: [AI Gốc] -> [Clip thật 5s] */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => handleJumpToSegment(idx, 'original')}
-                        className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition border ${
-                          isOriginalActive
-                            ? 'bg-rose-600 text-white border-rose-500 shadow-md ring-1 ring-rose-400'
-                            : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
-                        }`}
-                      >
-                        <Film className="w-3 h-3 text-rose-400" />
-                        Đoạn AI ({actor.originalVideoStart ?? idx * 7}s &rarr; {actor.originalVideoEnd ?? (idx + 1) * 7}s)
-                      </button>
+                    {isSelected ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            if (activeIndex >= 0) handleJumpToSegment(activeIndex, 'original');
+                          }}
+                          className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition border ${
+                            isOriginalActive
+                              ? 'bg-rose-600 text-white border-rose-500 shadow-md ring-1 ring-rose-400'
+                              : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                          }`}
+                        >
+                          <Film className="w-3 h-3 text-rose-400" />
+                          Đoạn AI ({actor.originalVideoStart ?? idx * 7}s &rarr; {actor.originalVideoEnd ?? (idx + 1) * 7}s)
+                        </button>
 
-                      <button
-                        onClick={() => handleJumpToSegment(idx, 'clip')}
-                        className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition border ${
-                          isClipActive
-                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-1 ring-emerald-400'
-                            : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
-                        }`}
-                      >
-                        <Scissors className="w-3 h-3 text-emerald-400" />
-                        Clip 5s ({(actor.trimStartTime || 0).toFixed(1)}s &rarr; {((actor.trimStartTime || 0) + (actor.clipDuration || 5)).toFixed(1)}s)
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => {
+                            if (activeIndex >= 0) handleJumpToSegment(activeIndex, 'clip');
+                          }}
+                          className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition border ${
+                            isClipActive
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-1 ring-emerald-400'
+                              : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                          }`}
+                        >
+                          <Scissors className="w-3 h-3 text-emerald-400" />
+                          Clip 5s ({(actor.trimStartTime || 0).toFixed(1)}s &rarr; {((actor.trimStartTime || 0) + (actor.clipDuration || 5)).toFixed(1)}s)
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-500 italic py-1 text-center bg-slate-950/60 rounded">
+                        Đã bỏ qua diễn viên này (không ghép vào video)
+                      </div>
+                    )}
                   </div>
                 );
               })}

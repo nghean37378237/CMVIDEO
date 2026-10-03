@@ -14,9 +14,10 @@ export async function stitchActorVideos(
   onProgress?: (progress: StitchProgress) => void,
   originalVideoUrl?: string
 ): Promise<Blob> {
-  const validActors = actors.filter((a) => a.selectedClip && a.selectedClip.url);
+  // Only process actors selected by user (selected !== false)
+  const validActors = actors.filter((a) => a.selected !== false);
   if (validActors.length === 0) {
-    throw new Error('Chưa có clip video nào được chọn để ghép!');
+    throw new Error('Chưa có diễn viên nào được chọn để ghép! Vui lòng tích chọn ít nhất 1 diễn viên.');
   }
 
   // 9:16 Portrait default (TikTok/Reels/Shorts)
@@ -236,13 +237,17 @@ export async function stitchActorVideos(
           ctx.fillStyle = '#05070f';
           ctx.fillRect(0, 0, width, height);
 
-          if (originalVideoEl.videoWidth > 0) {
-            const vw = originalVideoEl.videoWidth;
-            const vh = originalVideoEl.videoHeight;
-            const ratio = Math.max(width / vw, height / vh);
-            const cx = (width - vw * ratio) / 2;
-            const cy = (height - vh * ratio) / 2;
-            ctx.drawImage(originalVideoEl, 0, 0, vw, vh, cx, cy, vw * ratio, vh * ratio);
+          if (originalVideoEl.videoWidth > 0 && !originalVideoEl.error) {
+            try {
+              const vw = originalVideoEl.videoWidth;
+              const vh = originalVideoEl.videoHeight;
+              const ratio = Math.max(width / vw, height / vh);
+              const cx = (width - vw * ratio) / 2;
+              const cy = (height - vh * ratio) / 2;
+              ctx.drawImage(originalVideoEl, 0, 0, vw, vh, cx, cy, vw * ratio, vh * ratio);
+            } catch (err) {
+              drawGenerativeActorMotion(ctx, width, height, actor, curTime);
+            }
           } else {
             drawGenerativeActorMotion(ctx, width, height, actor, curTime);
           }
@@ -370,58 +375,63 @@ function drawVideoCover(
   currentTime: number,
   settings: StitchSettings
 ) {
-  if (video.readyState >= 2 && video.videoWidth > 0) {
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    const isPortraitOutput = settings.aspectRatio === '9:16';
-    const fitMode = settings.verticalFitMode || 'full-cover';
+  try {
+    if (video.readyState >= 2 && video.videoWidth > 0 && !video.error) {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const isPortraitOutput = settings.aspectRatio === '9:16';
+      const fitMode = settings.verticalFitMode || 'full-cover';
 
-    if (isPortraitOutput && fitMode === 'blur-fill') {
-      // 1. Draw blurred ambient backdrop to fill the 9:16 canvas seamlessly
-      ctx.save();
-      const bgRatio = Math.max(w / vw, h / vh);
-      const bgShiftX = (w - vw * bgRatio) / 2;
-      const bgShiftY = (h - vh * bgRatio) / 2;
-      ctx.filter = 'blur(18px) brightness(0.55)';
-      ctx.drawImage(video, 0, 0, vw, vh, bgShiftX, bgShiftY, vw * bgRatio, vh * bgRatio);
-      ctx.restore();
+      if (isPortraitOutput && fitMode === 'blur-fill') {
+        // 1. Draw blurred ambient backdrop to fill the 9:16 canvas seamlessly
+        ctx.save();
+        const bgRatio = Math.max(w / vw, h / vh);
+        const bgShiftX = (w - vw * bgRatio) / 2;
+        const bgShiftY = (h - vh * bgRatio) / 2;
+        ctx.filter = 'blur(18px) brightness(0.55)';
+        ctx.drawImage(video, 0, 0, vw, vh, bgShiftX, bgShiftY, vw * bgRatio, vh * bgRatio);
+        ctx.restore();
 
-      // 2. Draw crisp centered video in the 9:16 frame
-      const centerRatio = Math.min(w / vw, (h * 0.72) / vh);
-      const cw = vw * centerRatio;
-      const ch = vh * centerRatio;
-      const cx = (w - cw) / 2;
-      const cy = (h - ch) / 2 - 20;
+        // 2. Draw crisp centered video in the 9:16 frame
+        const centerRatio = Math.min(w / vw, (h * 0.72) / vh);
+        const cw = vw * centerRatio;
+        const ch = vh * centerRatio;
+        const cx = (w - cw) / 2;
+        const cy = (h - ch) / 2 - 20;
 
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.85)';
-      ctx.shadowBlur = 32;
-      ctx.drawImage(video, 0, 0, vw, vh, cx, cy, cw, ch);
-      ctx.restore();
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 32;
+        ctx.drawImage(video, 0, 0, vw, vh, cx, cy, cw, ch);
+        ctx.restore();
 
-      // Soft vignette top and bottom
-      const botGrad = ctx.createLinearGradient(0, h * 0.78, 0, h);
-      botGrad.addColorStop(0, 'rgba(0,0,0,0)');
-      botGrad.addColorStop(1, 'rgba(0,0,0,0.85)');
-      ctx.fillStyle = botGrad;
-      ctx.fillRect(0, h * 0.78, w, h * 0.22);
+        // Soft vignette top and bottom
+        const botGrad = ctx.createLinearGradient(0, h * 0.78, 0, h);
+        botGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        botGrad.addColorStop(1, 'rgba(0,0,0,0.85)');
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, h * 0.78, w, h * 0.22);
+      } else {
+        // Direct center cover crop (smart crop)
+        const hRatio = w / vw;
+        const vRatio = h / vh;
+        const ratio = Math.max(hRatio, vRatio);
+        const centerShiftX = (w - vw * ratio) / 2;
+        const centerShiftY = (h - vh * ratio) / 2;
+
+        ctx.drawImage(video, 0, 0, vw, vh, centerShiftX, centerShiftY, vw * ratio, vh * ratio);
+
+        const botGrad = ctx.createLinearGradient(0, h * 0.8, 0, h);
+        botGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        botGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, h * 0.8, w, h * 0.2);
+      }
     } else {
-      // Direct center cover crop (smart crop)
-      const hRatio = w / vw;
-      const vRatio = h / vh;
-      const ratio = Math.max(hRatio, vRatio);
-      const centerShiftX = (w - vw * ratio) / 2;
-      const centerShiftY = (h - vh * ratio) / 2;
-
-      ctx.drawImage(video, 0, 0, vw, vh, centerShiftX, centerShiftY, vw * ratio, vh * ratio);
-
-      const botGrad = ctx.createLinearGradient(0, h * 0.8, 0, h);
-      botGrad.addColorStop(0, 'rgba(0,0,0,0)');
-      botGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
-      ctx.fillStyle = botGrad;
-      ctx.fillRect(0, h * 0.8, w, h * 0.2);
+      drawGenerativeActorMotion(ctx, w, h, actor, currentTime);
     }
-  } else {
+  } catch (err) {
+    // Graceful fallback if CORS or drawImage throws
     drawGenerativeActorMotion(ctx, w, h, actor, currentTime);
   }
 }
